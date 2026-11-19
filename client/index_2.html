@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OPEN WORLD. - Random Video Chat</title>
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#0a0a12;color:#fff;font-family:system-ui,Arial}header{padding:12px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #222}
+.logo{font-weight:900;font-size:22px;background:linear-gradient(90deg,#ff8a00,#a3e635,#22d3ee,#60a5fa,#c084fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.online{color:#4ade80;font-size:13px}main{max-width:520px;margin:0 auto;padding:14px}
+.card{background:#15151f;border:1px solid #2a2a3a;border-radius:16px;padding:14px;margin-bottom:12px}
+.video{width:100%;aspect-ratio:4/3;background:#000;border-radius:12px;object-fit:cover}
+.small{width:130px;aspect-ratio:4/3;position:absolute;right:10px;bottom:10px;border:2px solid #fff;border-radius:10px;object-fit:cover;background:#111}
+.wrap{position:relative} .badge{position:absolute;left:10px;top:10px;background:#ef4444;padding:4px 8px;border-radius:20px;font-size:12px;font-weight:700}
+.info{position:absolute;left:10px;bottom:10px;background:rgba(0,0,0,.6);padding:6px 10px;border-radius:10px;font-size:13px}
+button{border:0;border-radius:12px;padding:12px 16px;font-weight:800;cursor:pointer} .primary{width:100%;background:linear-gradient(90deg,#ff8a00,#22d3ee,#a855f7);color:#fff;font-size:18px}
+.row{display:flex;gap:8px} .row button{flex:1;background:#262635;color:#fff} .row button.active{background:#22d3ee;color:#000}
+input,select{width:100%;padding:11px;border-radius:10px;border:1px solid #333;background:#0f0f18;color:#fff;margin:6px 0}
+.pill{display:inline-block;padding:7px 12px;border-radius:20px;background:#262635;margin:4px 4px 0 0;cursor:pointer;font-size:13px} .pill.on{background:#a3e635;color:#000;font-weight:700}
+#chatBox{height:160px;overflow:auto;background:#0f0f18;border-radius:10px;padding:10px;font-size:14px} .msg{margin:6px 0} .me{color:#7dd3fc} .them{color:#fda4af}
+.hidden{display:none} .center{text-align:center;color:#aaa;font-size:13px}
+</style></head>
+<body>
+<header><div class="logo">OPEN WORLD.</div><div style="font-size:13px">🪙 <span id="coins">120</span> <button onclick="buyPremium()" style="padding:4px 8px;background:#facc15">⭐ Premium</button> <button onclick="buyCoins()" style="padding:4px 8px;background:#22d3ee">+ Coins</button></div><div class="online">● <span id="online">0</span> online</div></header>
+<main>
+<div id="gate" class="card">
+<h2 style="margin:0">Connect the world 🌍</h2><p class="center">Random 1-on-1 video chat with strangers who become friends.</p>
+<input id="name" placeholder="Your name">
+<select id="country"><option>India</option><option>USA</option><option>Brazil</option><option>Japan</option><option>UK</option><option>France</option></select>
+<select id="lang"><option value="English">English</option><option value="Tamil">Tamil</option><option value="Hindi">Hindi</option><option value="Spanish">Spanish</option></select>
+<div><span class="pill on" data-i="Music">Music</span><span class="pill" data-i="Gaming">Gaming</span><span class="pill" data-i="Travel">Travel</span><span class="pill" data-i="Dance">Dance</span><span class="pill" data-i="Movies">Movies</span><span class="pill" data-i="Study">Study</span></div>
+<label style="display:block;margin:12px 0;font-size:13px"><input type="checkbox" id="age" style="width:auto"> I am 18+ and agree to be kind. No nudity, no harassment.</label>
+<button class="primary" onclick="startApp()">START CHATTING →</button>
+<p class="center">Stay safe: Never share personal info. Report bad behavior instantly.</p>
+</div>
+
+<div id="app" class="hidden">
+<div class="card"><div class="wrap">
+<video id="remote" class="video" autoplay playsinline></video>
+<video id="local" class="small" autoplay playsinline muted></video>
+<div class="badge" id="statusBadge">WAITING</div>
+<div class="info" id="partnerInfo">Tap START to match</div>
+</div>
+<p id="status" class="center">Ready</p>
+<div class="row"><button class="primary" id="startBtn" onclick="findMatch()">▶ START</button><button style="background:#ef4444;color:#fff" onclick="nextPerson()">NEXT ➜</button></div>
+<div class="row" style="margin-top:8px"><button id="muteBtn" onclick="toggleMute()">🔇 Mute</button><button id="camBtn" onclick="toggleCam()">📷 Camera</button><button onclick="reportUser()" style="background:#7f1d1d">🚩 Report</button><button onclick="addFriend()">❤️ Add Friend</button></div>
+</div>
+<div class="card"><b>Live Chat</b><div id="chatBox"></div><div class="row" style="margin-top:8px"><input id="chatInput" placeholder="Say hi..." style="flex:1"><button onclick="sendChat()" style="background:#22d3ee">Send</button></div></div>
+<div class="card"><b>Friends</b><div id="friends">No friends yet - add someone you like!</div></div>
+</div>
+</main>
+<script>
+// >>> CHANGE THIS to your deployed server URL, e.g. https://openworld-server.up.railway.app
+const SERVER_URL = "http://localhost:3001";
+let socket, pc, localStream, interests=[], isMuted=false, camOff=false, partner=null;
+document.querySelectorAll('.pill').forEach(p=>p.onclick=()=>{p.classList.toggle('on'); interests=[...document.querySelectorAll('.pill.on')].map(x=>x.dataset.i);});
+interests=['Music'];
+async function startApp(){
+  if(!document.getElementById('age').checked) return alert('Please confirm you are 18+');
+  document.getElementById('gate').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  try{
+    localStream = await navigator.mediaDevices.getUserMedia({video:true,audio:true});
+    document.getElementById('local').srcObject = localStream;
+  }catch(e){ alert('Camera permission needed: '+e.message); return; }
+  socket = io(SERVER_URL);
+  socket.on('connect', ()=>{
+    socket.emit('join',{name:document.getElementById('name').value||'Guest',country:document.getElementById('country').value,language:document.getElementById('lang').value,interests,gender:'any'});
+  });
+  socket.on('coins',n=>document.getElementById('coins').textContent=n); socket.on('coins-bought',a=>alert('You got '+a+' coins!')); socket.on('premium-on',()=>alert('Premium ON! Priority matching + Country pick unlocked')); socket.on('need-coins',()=>alert('Need 200 coins for Premium')); socket.on('online', n=> document.getElementById('online').textContent=n);
+  socket.on('searching', ()=> setStatus('Finding someone...'));
+  socket.on('matched', async d=>{
+    partner=d.partner; setStatus('Matched with '+partner.name+' from '+partner.country+'!');
+    document.getElementById('partnerInfo').textContent = partner.name+' • '+partner.country+' • '+partner.interests.join(', ');
+    document.getElementById('statusBadge').textContent='LIVE';
+    await createPeer(d.roomId, d.initiator);
+  });
+  socket.on('offer', async d=>{ await createPeer(d.roomId,false); await pc.setRemoteDescription(d.offer); const ans=await pc.createAnswer(); await pc.setLocalDescription(ans); socket.emit('answer',{roomId:d.roomId,answer:ans}); });
+  socket.on('answer', async d=>{ await pc.setRemoteDescription(d.answer); });
+  socket.on('ice-candidate', async d=>{ try{ await pc.addIceCandidate(d.candidate);}catch(e){} });
+  socket.on('chat', d=> addMsg(d.text,'them'));
+  socket.on('partner-left', ()=>{ setStatus('Stranger left. Tap NEXT'); document.getElementById('statusBadge').textContent='ENDED'; if(pc) pc.close(); });
+  socket.on('reported', ()=> alert('Reported. You are safe. Finding next person...'));
+  socket.on('banned-temp', ()=> alert('You were reported by multiple users. Temporary ban.'));
+}
+function setStatus(t){ document.getElementById('status').textContent=t; }
+async function createPeer(roomId, initiator){
+  if(pc) pc.close();
+  pc = new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});
+  localStream.getTracks().forEach(t=>pc.addTrack(t, localStream));
+  pc.onicecandidate=e=>{ if(e.candidate) socket.emit('ice-candidate',{roomId, candidate:e.candidate}); };
+  pc.ontrack=e=>{ document.getElementById('remote').srcObject=e.streams[0]; };
+  if(initiator){ const offer=await pc.createOffer(); await pc.setLocalDescription(offer); socket.emit('offer',{roomId, offer}); }
+}
+function findMatch(){ socket.emit('find-match'); setStatus('Finding someone...'); document.getElementById('statusBadge').textContent='FINDING...'; }
+function nextPerson(){ if(pc) pc.close(); document.getElementById('remote').srcObject=null; socket.emit('next'); setTimeout(()=>socket.emit('find-match'),400); }
+function sendChat(){ const inp=document.getElementById('chatInput'); if(!inp.value.trim()) return; socket.emit('chat',{text:inp.value}); addMsg(inp.value,'me'); inp.value=''; }
+function addMsg(t,who){ const d=document.createElement('div'); d.className='msg '+(who==='me'?'me':'them'); d.textContent=(who==='me'?'You: ':'Stranger: ')+t; document.getElementById('chatBox').appendChild(d); }
+function toggleMute(){ isMuted=!isMuted; localStream.getAudioTracks().forEach(t=>t.enabled=!isMuted); document.getElementById('muteBtn').textContent=isMuted?'🔊 Unmute':'🔇 Mute'; }
+function toggleCam(){ camOff=!camOff; localStream.getVideoTracks().forEach(t=>t.enabled=!camOff); document.getElementById('camBtn').textContent=camOff?'📷 Camera On':'📷 Camera Off'; }
+function buyCoins(){ socket.emit('buy-coins','100'); } function buyPremium(){ socket.emit('buy-premium'); } function reportUser(){ if(confirm('Report this stranger?')) socket.emit('report'); }
+function addFriend(){ if(!partner) return alert('Match first!'); document.getElementById('friends').textContent = '❤️ '+partner.name+' from '+partner.country+' added as friend!'; }
+document.getElementById('chatInput')?.addEventListener('keydown',e=>{ if(e.key==='Enter') sendChat(); });
+</script></body></html>

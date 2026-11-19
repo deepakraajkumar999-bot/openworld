@@ -1,0 +1,51 @@
+OPEN WORLD. - GO LIVE IN 15 MINUTES (No coding)
+
+YOU NEED 2 FREE ACCOUNTS:
+1. Railway.app - for SERVER (matching)
+2. Vercel.com - for APP (what users see)
+
+--- PART A: SERVER (5 mins) ---
+1. Go to Railway.app > Login with GitHub / Google
+2. Click "New Project" > "Deploy from GitHub" OR "Empty Project"
+   EASIEST: Click "Deploy from Local" / Upload - drag the whole "server" folder
+   OR: Create new GitHub repo, upload server folder, connect it
+3. Railway will auto-detect Node.js and run: npm install + npm start
+4. Click "Settings" > "Generate Domain" - you will get a link like:
+   https://openworld-server-production-xxxx.up.railway.app
+5. COPY that link. That is your SERVER_URL. Keep it.
+
+Test it: Open that link in browser - you should see "OPEN WORLD. server live"
+
+--- PART B: APP (5 mins) ---
+1. Go to Vercel.com > Login
+2. Click "Add New" > "Project" > "Import" - upload the "client" folder
+   OR drag-drop client folder on vercel.com/new
+3. Click Deploy. You will get a link like:
+   https://open-world-xxxx.vercel.app
+4. Open that link + add ?server=YOUR_RAILWAY_LINK
+   Example: https://open-world-xxxx.vercel.app/?server=https://openworld-server-production-xxxx.up.railway.app
+5. SHARE THAT FULL LINK to anyone! They open it, allow camera, tap START.
+
+No code editing needed - the app now reads ?server= from the link.
+You can also save it: In the app, there is a "Server Link" box at top - paste Railway link once, it saves.
+
+--- PART C: TEST WITH A FRIEND ---
+1. Send your Vercel link to a friend
+2. Both open it on phone / laptop, allow camera
+3. Both tap START - you will match each other
+4. Tap NEXT - you re-match
+
+--- IF VIDEO DOES NOT CONNECT ON DIFFERENT WIFI ---
+That is TURN server missing. Free fix:
+- Go to metered.ca or Twilio.com > Create TURN credentials (free tier)
+- Paste TURN URL + username + password in client/index.html where it says TURN
+- Redeploy on Vercel (1 click)
+
+--- COST ---
+0 users: FREE (Railway $5 trial + Vercel free)
+First 1000 users: ~Rs 400-800/month
+This is the cheapest real way.
+
+--- ADMIN ---
+Open: admin/index.html in your browser, set API to your Railway link.
+Or open: https://your-railway-link/admin-data to see live stats.

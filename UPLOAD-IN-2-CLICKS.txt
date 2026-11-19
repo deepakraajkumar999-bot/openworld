@@ -1,0 +1,20 @@
+DO THIS - ONLY 2 CLICKS, NO FOLDER CONFUSION
+
+You are holding the READY file. Do this:
+
+1. Go to github.com > New repository > Name: openworld > Create
+2. Click "uploading an existing file"
+3. DRAG THIS WHOLE ZIP FILE? NO - Unzip it first, then drag ALL files inside it to GitHub
+4. Click Commit
+
+Then:
+Railway.app > New Project > Deploy from GitHub > pick "openworld" > Settings > Generate Domain > COPY LINK
+
+Vercel.com > New Project > Import "openworld" > Root Directory: CHANGE to "client" > Deploy > COPY LINK
+
+Final link = Vercel link + ?server= + Railway link
+
+Example:
+https://open-world-xxxx.vercel.app/?server=https://openworld-xxxx.up.railway.app
+
+DONE.
